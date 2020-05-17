@@ -19,7 +19,7 @@ get_mean <- function(x, l, k, z, w,
   k <- k / (k_num - 1)
   the_mean <- ((x+1)*0.3 + ((l+1)*0.15)+0.1 + (l*(1-x))*0.1 -
     (z)*0.1 - (z*l)*0.1 - (w*x)*0.3 - (z*w)*0.05)*(1 - k*0.01)
-  max(0.1, min(0.9, the_mean))
+  max(0.25, min(0.90, the_mean))
 }
 
 ```
@@ -34,7 +34,7 @@ w_num <- 2
 N <- 1
 
 measurements <-
-  as.tibble(
+  as_tibble(
     expand.grid(
       X=0:(x_num-1),
       L=0:(l_num-1),
@@ -101,8 +101,14 @@ anova(linear_fit)
 
 
 ```{r}
-summary(lme4::glmer(
+logistic_fit <- lme4::glmer(
   model,
-  family = "binomial",
-  data=measurements))
+  family="binomial",
+  data=measurements,
+  control=lme4::glmerControl(optimizer="bobyqa",
+                            optCtrl=list(maxfun=1e6)))
+```
+
+```{r}
+summary(logistic_fit)
 ```
