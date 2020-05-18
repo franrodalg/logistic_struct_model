@@ -4,7 +4,14 @@ output: html_notebook
 ---
 
 ```{r}
-library(tidyverse)
+if (!require(tidyverse)) {
+  install.packages('tidyverse')
+  library(tidyverse)
+}
+if (!require(lme4))
+  install.packages('lme4')
+if (!require(lmerTest))
+  install.packages('lmerTest')
 ```
 
 ```{r}
@@ -85,17 +92,13 @@ model <- acc ~ learn_alg*feat_ext + learn_alg*conf_1 + learn_alg*conf_2 +
 
 
 ```{r}
-linear_fit <- lme4::lmer(
+linear_fit <- lmerTest::lmer(
   model,
   data=measurements)
 ```
 
 ```{r}
 summary(linear_fit)
-```
-
-```{r}
-anova(linear_fit)
 ```
 
 ## Logistic Modelling
