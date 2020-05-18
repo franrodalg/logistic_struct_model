@@ -38,9 +38,10 @@ l_num <- 2
 k_num <- 40
 z_num <- 2
 w_num <- 2
-N <- 1
+```
 
-measurements <-
+```{r}
+(measurements <-
   as_tibble(
     expand.grid(
       X=0:(x_num-1),
@@ -63,9 +64,9 @@ measurements <-
       a=0,
       b=1,
       mean=mean_acc,
-      sd=0.1)
-  )
-
+      sd=0.1)) %>%
+  select(samp, everything(), -c(1:5), -mean_acc) %>%
+  arrange(samp))
 ```
 
 ```{r}
