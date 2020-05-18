@@ -3,6 +3,8 @@ title: "Analysing Measurements from Intervention-based Evaluation Studies"
 output: html_notebook
 ---
 
+## Setup
+
 ```{r}
 if (!require(tidyverse)) {
   install.packages('tidyverse')
@@ -18,6 +20,8 @@ if (!require(lmerTest))
 set.seed(1986)
 ```
 
+## Helper Functions
+
 ```{r}
 get_mean <- function(x, l, k, z, w,
                      x_num=2, l_num=2, k_num=2) {
@@ -28,9 +32,9 @@ get_mean <- function(x, l, k, z, w,
     (z)*0.1 - (z*l)*0.1 - (w*x)*0.3 - (z*w)*0.05)*(1 - k*0.01)
   max(0.25, min(0.90, the_mean))
 }
-
 ```
 
+## Simulation parameters
 
 ```{r}
 x_num <- 2
@@ -39,6 +43,8 @@ k_num <- 40
 z_num <- 2
 w_num <- 2
 ```
+
+## Computation of Simulated Measurements
 
 ```{r}
 (measurements <-
@@ -82,16 +88,14 @@ measurements %>%
     theme_bw()
 ```
 
+## Model Definition
 
 ```{r}
 model <- acc ~ learn_alg*feat_ext*conf_1 + learn_alg*feat_ext*conf_2 + 
   conf_1*conf_2 + (1 | samp)
-
 ```
 
-
 ## Linear Modelling
-
 
 ```{r}
 linear_fit <- lmerTest::lmer(
@@ -104,7 +108,6 @@ summary(linear_fit)
 ```
 
 ## Logistic Modelling
-
 
 ```{r}
 logistic_fit <- lme4::glmer(
