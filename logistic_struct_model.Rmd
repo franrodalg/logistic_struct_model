@@ -76,7 +76,8 @@ measurements %>%
 
 ```{r}
 model <- acc ~ learn_alg*feat_ext + learn_alg*conf_1 + learn_alg*conf_2 + 
-    feat_ext*conf_1 + feat_ext*conf_2 + conf_1*conf_2 + (1 | samp)
+    feat_ext*conf_1 + feat_ext*conf_2 + conf_1*conf_2 +
+  learn_alg*feat_ext*conf_1 + learn_alg*feat_ext*conf_2 + (1 | samp)
 
 ```
 
