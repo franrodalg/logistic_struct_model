@@ -16,6 +16,8 @@ if (!require(lmerTest))
   install.packages('lmerTest')
 if (!require(modelbased))
   install.packages('modelbased')
+if (!require(rbenchmark))
+  install.packages('rbenchmark')
 ```
 
 ```{r}
@@ -136,6 +138,18 @@ summary(logistic_fit)
 
 ## Interpretation
 
+### Convert logistic estimates
+
+```{r}
+logit_inv <- function(x) { 1 / (1+exp(-x)) }
+```
+
+```{r}
+data.frame(estimate=lme4::fixef(logistic_fit)) %>%
+    rownames_to_column('parameter') %>%
+    mutate(converted=logit_inv(estimate))
+```
+
 ### Estimated Means
 
 ```{r}
@@ -144,4 +158,25 @@ modelbased::estimate_means(linear_fit)
 
 ```{r}
 modelbased::estimate_means(logistic_fit)
+```
+
+
+## Benchmarking
+
+
+```{r}
+rbenchmark::benchmark(
+  "linear" = {
+    l <- lmerTest::lmer(model, data=measurements)},
+  "logistic" = {
+    l <- lme4::glmer(
+      model,
+      family="binomial",
+      data=observations,
+      control=lme4::glmerControl(optimizer="bobyqa",
+                                 optCtrl=list(maxfun=1e6)))},
+  replications = 10,
+  columns = c("test", "replications", "elapsed",
+              "relative", "user.self", "sys.self"))
+
 ```
