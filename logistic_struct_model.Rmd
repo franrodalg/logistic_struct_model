@@ -14,10 +14,14 @@ if (!require(lme4))
   install.packages('lme4')
 if (!require(lmerTest))
   install.packages('lmerTest')
-if (!require(modelbased))
-  install.packages('modelbased')
+if (!require(emmeans))
+  install.packages('emmeans')
 if (!require(rbenchmark))
   install.packages('rbenchmark')
+if(!require(patchwork)) {
+  install.packages('patchwork')
+  library(patchwork)
+}
 ```
 
 ```{r}
@@ -96,7 +100,7 @@ measurements %>%
     ggplot() +
     geom_boxplot(aes(x=feat_ext, y=y, color=learn_alg, fill=learn_alg),
                alpha=0.2, size=0.8) +
-    facet_grid(rows=vars(conf_1), cols=vars(conf_2)) +
+    facet_grid(rows=vars(conf_1), cols=vars(conf_2), labeller=label_both) +
     coord_cartesian(ylim=c(0,1)) +
     labs(x='Feature Extractor', y='Accuracy') +
     scale_color_discrete(name='Learning\nAlgorithm') +
@@ -152,12 +156,135 @@ data.frame(estimate=lme4::fixef(logistic_fit)) %>%
 
 ### Estimated Means
 
+#### Linear
+
 ```{r}
-modelbased::estimate_means(linear_fit)
+(linear_means <- emmeans::emmeans(
+  linear_fit, c('feat_ext', 'learn_alg', 'conf_1', 'conf_2')))
 ```
 
 ```{r}
-modelbased::estimate_means(logistic_fit)
+linear_means_df <- linear_means %>%
+   as_tibble() %>%
+   select(c(1:5)) %>%
+   mutate_if(is.factor, as.character) %>%
+   rename(Linear=emmean)
+```
+
+#### Logistic
+
+```{r}
+logistic_means <- emmeans::emmeans(
+  logistic_fit,
+  c('feat_ext', 'learn_alg', 'conf_1', 'conf_2'),
+  type='response')
+```
+
+```{r}
+logistic_means_df <- logistic_means %>%
+  as_tibble() %>%
+  select(c(1:5)) %>%
+  mutate_if(is.factor, as.character) %>%
+  rename(Logistic=prob)
+```
+
+#### Comparison
+
+```{r, warning=F, message=F}
+(comparison <- observations %>%
+  group_by(feat_ext, learn_alg, conf_1, conf_2) %>%
+  summarise(Ability=unique(ability),
+            Accuracy=mean(y)) %>%
+  inner_join(linear_means_df,
+             by=c('feat_ext', 'learn_alg', 'conf_1', 'conf_2'),
+            ) %>%
+  inner_join(logistic_means_df,
+             by=c('feat_ext', 'learn_alg', 'conf_1', 'conf_2')))
+```
+
+```{r}
+lin_log_p <- comparison %>%
+  ggplot() +
+  geom_point(aes(x=Linear, y=Logistic), alpha=0.6, size=2) +
+  theme_bw() +
+  coord_fixed(xlim=c(0,1), ylim=c(0,1)) +
+  annotate("text", x=0.8, y=0.05,
+    label="paste(italic(R) ^ 2, \" = .997\")",
+    parse = TRUE)
+lin_ab_p <- comparison %>%
+  ggplot() +
+  geom_point(aes(x=Linear, y=Ability), alpha=0.6, size=2) +
+  theme_bw() +
+  coord_fixed(xlim=c(0,1), ylim=c(0,1)) +
+  annotate("text", x=0.8, y=0.05,
+    label="paste(italic(R) ^ 2, \" = .999\")",
+    parse = TRUE)
+log_ab_p <- comparison %>%
+  ggplot() +
+  geom_point(aes(x=Logistic, y=Ability), alpha=0.6, size=2) +
+  theme_bw() +
+  coord_fixed(xlim=c(0,1), ylim=c(0,1)) +
+  annotate("text", x=0.8, y=0.05,
+    label="paste(italic(R) ^ 2, \" = .998\")",
+    parse = TRUE)
+```
+
+```{r}
+lin_log_p + lin_ab_p + log_ab_p
+```
+
+### Contrasts
+
+#### Linear
+
+```{r}
+emmeans::contrast(linear_means, type='response', method='pairwise')
+```
+
+```{r}
+(linear_contrasts_conf <- emmeans::contrast(
+  emmeans::emmeans(linear_fit, c('conf_1', 'conf_2'), 
+                   by =c('learn_alg', 'feat_ext'), type="response"),
+  type="response"))
+```
+
+```{r}
+linear_contrasts_conf_p <- linear_contrasts_conf %>% plot() +
+    facet_grid(rows=vars(learn_alg, feat_ext),
+               labeller=label_both, scales='free_y') +
+    theme_bw() +
+    labs(x='Estimate', y='Contrast') +
+    ggtitle('Linear Contrasts')
+```
+
+
+
+#### Logistic
+
+```{r}
+(logistic_contrasts_conf <- emmeans::contrast(
+  emmeans::emmeans(logistic_fit, c('conf_1', 'conf_2'), 
+                   by =c('learn_alg', 'feat_ext'), type="response"),
+  type="response"))
+```
+
+```{r}
+logistic_contrasts_conf_p <- logistic_contrasts_conf %>% plot() +
+    facet_grid(rows=vars(learn_alg, feat_ext), 
+               labeller=label_both, scales='free_y') +
+    theme_bw() +
+    labs(x='Odds Ratio', y='Contrast') +
+    ggtitle('Logistic Contrasts')
+```
+
+### Comparison
+
+```{r}
+(linear_contrasts_conf_p) + 
+  (logistic_contrasts_conf_p + 
+  theme(
+    axis.text.y = element_blank(),
+    axis.title.y = element_blank()))
 ```
 
 
