@@ -174,10 +174,10 @@ linear_means_df <- linear_means %>%
 #### Logistic
 
 ```{r}
-logistic_means <- emmeans::emmeans(
+(logistic_means <- emmeans::emmeans(
   logistic_fit,
   c('feat_ext', 'learn_alg', 'conf_1', 'conf_2'),
-  type='response')
+  type='response'))
 ```
 
 ```{r}
@@ -233,19 +233,58 @@ log_ab_p <- comparison %>%
 lin_log_p + lin_ab_p + log_ab_p
 ```
 
+### Factor Relevance
+
+#### Linear
+
+```{r}
+(linear_anova <- anova(linear_fit))
+```
+
+#### Logistic
+
+```{r}
+(logistic_anova <- anova(logistic_fit))
+```
+
+### Comparison
+
+```{r}
+comparison_anovas <- as.data.frame(linear_anova) %>%
+  rownames_to_column('term') %>%
+  select(term, Linear=`F value`) %>%
+  inner_join(
+    as.data.frame(logistic_anova) %>%
+      rownames_to_column('term') %>%
+      select(term, Logistic=`F value`),
+    by='term'
+  ) 
+```
+
+```{r}
+comparison_anovas %>%
+  ggplot(aes(x=Linear, y=Logistic)) +
+  geom_point(size=4, alpha=0.6) +
+  coord_fixed() +
+  theme_bw() +
+  theme(text=element_text(size=20)) +
+  labs(x='Factor F-value from Linear fit',
+       y='Factor F-value from Logistic fit')
+```
+
 ### Contrasts
 
 #### Linear
 
 ```{r}
-emmeans::contrast(linear_means, type='response', method='pairwise')
+emmeans::contrast(linear_means)
 ```
+
 
 ```{r}
 (linear_contrasts_conf <- emmeans::contrast(
   emmeans::emmeans(linear_fit, c('conf_1', 'conf_2'), 
-                   by =c('learn_alg', 'feat_ext'), type="response"),
-  type="response"))
+                   by=c('learn_alg', 'feat_ext'))))
 ```
 
 ```{r}
@@ -253,7 +292,7 @@ linear_contrasts_conf_p <- linear_contrasts_conf %>% plot() +
     facet_grid(rows=vars(learn_alg, feat_ext),
                labeller=label_both, scales='free_y') +
     theme_bw() +
-    labs(x='Estimate', y='Contrast') +
+    labs(x='Effect Size', y='Contrast') +
     ggtitle('Linear Contrasts')
 ```
 
@@ -264,8 +303,7 @@ linear_contrasts_conf_p <- linear_contrasts_conf %>% plot() +
 ```{r}
 (logistic_contrasts_conf <- emmeans::contrast(
   emmeans::emmeans(logistic_fit, c('conf_1', 'conf_2'), 
-                   by =c('learn_alg', 'feat_ext'), type="response"),
-  type="response"))
+                   by=c('learn_alg', 'feat_ext'), type='response')))
 ```
 
 ```{r}
